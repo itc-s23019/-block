@@ -59,85 +59,84 @@ const BlockMain = () => {
 
   // ゲームのアニメーション（ボールの動き、衝突判定など）
   const draw = () => {
-  const canvas = canvasRef.current;
-  const ctx = canvas.getContext('2d');
-  const { ball, paddle, blocks } = gameRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const { ball, paddle, blocks } = gameRef.current;
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawBall(ctx, ball);
-  drawPaddle(ctx, paddle, canvas);
-  drawBlocks(ctx, blocks);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawBall(ctx, ball);
+    drawPaddle(ctx, paddle, canvas);
+    drawBlocks(ctx, blocks);
 
-  // ボールが左右の壁に当たった場合の反射角度を変更
-  if (ball.x + ball.dx > canvas.width - ball.radius || ball.x + ball.dx < ball.radius) {
-    ball.dx = -ball.dx;
-  }
+    // ボールが左右の壁に当たった場合の反射角度を変更
+    if (ball.x + ball.dx > canvas.width - ball.radius || ball.x + ball.dx < ball.radius) {
+      ball.dx = -ball.dx;
+    }
 
-  // ボールが上の壁に当たった場合の反射角度を変更
-  if (ball.y + ball.dy < ball.radius) {
-    ball.dy = -ball.dy;
-  } else if (ball.y + ball.dy > canvas.height - ball.radius) {
-  // パドルに当たった場合
-  if (
-    ball.x > paddle.x &&
-    ball.x < paddle.x + paddle.width
-  ) {
-    // パドルの中央に対するボールの相対的な位置を計算
-    const relativePosition = (ball.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
-
-    // 反射角度を計算
-    const reflectionAngle = relativePosition * Math.PI / 4;
-
-    // ボールの速度を増加
-    const speedMultiplier = 1;
-
-    // ボールの速度を変更し、速度の向きを維持
-    const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy) * speedMultiplier;
-    ball.dx = Math.sin(reflectionAngle) * speed;
-    ball.dy = -Math.cos(reflectionAngle) * speed;
-  } else {
-    // ゲームオーバーの処理
-    alert('GAME OVER');
-    document.location.reload();
-    return;
-  }
-
-  }
-
-  // ブロックとの当たり判定
-  let allBlocksDestroyed = true; // すべてのブロックが破壊されたかどうかのフラグ
-  blocks.forEach((block) => {
-    if (!block.isDestroyed) {
-      allBlocksDestroyed = false; // まだ破壊されていないブロックがある
+    // ボールが上の壁に当たった場合の反射角度を変更
+    if (ball.y + ball.dy < ball.radius) {
+      ball.dy = -ball.dy;
+    } else if (ball.y + ball.dy > canvas.height - ball.radius) {
+      // パドルに当たった場合
       if (
-        ball.x > block.x &&
-        ball.x < block.x + block.width &&
-        ball.y > block.y &&
-        ball.y < block.y + block.height
+        ball.x > paddle.x &&
+        ball.x < paddle.x + paddle.width
       ) {
-        block.isDestroyed = true;
-        ball.dy = -ball.dy;
+        // パドルの中央に対するボールの相対的な位置を計算
+        const relativePosition = (ball.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
+
+        // 反射角度を計算
+        const reflectionAngle = relativePosition * Math.PI / 4;
+
+        // ボールの速度を増加
+        const speedMultiplier = 1;
+
+        // ボールの速度を変更し、速度の向きを維持
+        const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy) * speedMultiplier;
+        ball.dx = Math.sin(reflectionAngle) * speed;
+        ball.dy = -Math.cos(reflectionAngle) * speed;
+      } else {
+        // ゲームオーバーの処理
+        alert('GAME OVER');
+        document.location.reload();
+        return;
       }
     }
-  });
 
-  if (allBlocksDestroyed) {
-    // すべてのブロックが破壊された場合、ゲームクリアの処理
-    const endTime = new Date();
-    const timeDiff = endTime - startTimeRef.current;
-    const seconds = Math.floor(timeDiff / 1000);
+    // ブロックとの当たり判定
+    let allBlocksDestroyed = true; // すべてのブロックが破壊されたかどうかのフラグ
+    blocks.forEach((block) => {
+      if (!block.isDestroyed) {
+        allBlocksDestroyed = false; // まだ破壊されていないブロックがある
+        if (
+          ball.x > block.x &&
+          ball.x < block.x + block.width &&
+          ball.y > block.y &&
+          ball.y < block.y + block.height
+        ) {
+          block.isDestroyed = true;
+          ball.dy = -ball.dy;
+        }
+      }
+    });
 
-    alert(`ゲームクリア！　おめでとうございます😁\nクリアにかかった時間：${seconds}秒`);
+    if (allBlocksDestroyed) {
+      // すべてのブロックが破壊された場合、ゲームクリアの処理
+      const endTime = new Date();
+      const timeDiff = endTime - startTimeRef.current;
+      const seconds = Math.floor(timeDiff / 1000);
 
-    document.location.reload();
-    return;
-  }
+      alert(`ゲームクリア！　おめでとうございます😁\nクリアにかかった時間：${seconds}秒`);
 
-  ball.x += ball.dx;
-  ball.y += ball.dy;
+      document.location.reload();
+      return;
+    }
 
-  requestAnimationFrame(draw);
-};
+    ball.x += ball.dx;
+    ball.y += ball.dy;
+
+    requestAnimationFrame(draw);
+  };
 
   // マウスの位置に応じてパドルの位置を更新
   const mouseMoveHandler = (e) => {
@@ -164,8 +163,8 @@ const BlockMain = () => {
     paddle.x = (canvas.width - paddle.width) / 2;
 
     // ブロックの初期化
-    const blockRowCount = 3;
-    const blockColumnCount = 5;
+    const blockRowCount = 6;
+    const blockColumnCount = 8;
     for (let c = 0; c < blockColumnCount; c++) {
       for (let r = 0; r < blockRowCount; r++) {
         gameRef.current.blocks.push({
@@ -212,7 +211,7 @@ const BlockMain = () => {
   return (
     <div className='main-content'>
       <p>経過時間: {elapsedTime}秒</p>
-      <canvas ref={canvasRef} width={410} height={250} style={{ border: '1px solid #000' }} />
+      <canvas ref={canvasRef} width={800} height={600} style={{ border: '1px solid #000' }} />
       <div className='start-button'>
         <button onClick={startGame}>ゲームスタート</button>
       </div>
@@ -221,3 +220,4 @@ const BlockMain = () => {
 };
 
 export default BlockMain;
+
