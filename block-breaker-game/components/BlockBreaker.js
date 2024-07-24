@@ -25,6 +25,7 @@ const BlockMain = () => {
 
   const startTimeRef = useRef(null);
   const gameStartedRef = useRef(false); // ゲームの開始フラグ
+  const blocksInitializedRef = useRef(false); // ブロックの初期化フラグ
 
   // ボールを描画
   const drawBall = (ctx, ball) => {
@@ -153,29 +154,32 @@ const BlockMain = () => {
     const canvas = canvasRef.current;
     const { ball, paddle } = gameRef.current;
 
+    if (!blocksInitializedRef.current) {
+      // ブロックの初期化
+      const blockRowCount = 6;
+      const blockColumnCount = 8;
+      for (let c = 0; c < blockColumnCount; c++) {
+        for (let r = 0; r < blockRowCount; r++) {
+          gameRef.current.blocks.push({
+            x: c * (75 + 10),
+            y: r * (20 + 10),
+            width: 75,
+            height: 20,
+            isDestroyed: false,
+          });
+        }
+      }
+      blocksInitializedRef.current = true;
+    }
+
     // ボールの初期位置をランダムに設定
     ball.x = Math.random() * (canvas.width - 3 * ball.radius) + ball.radius;
     ball.y = Math.random() * (canvas.height - 3 * ball.radius) + ball.radius;
 
     ball.dx = 4; // X方向の速度
-    ball.dy = -4; // y方向の速度
+    ball.dy = -4; // Y方向の速度
 
     paddle.x = (canvas.width - paddle.width) / 2;
-
-    // ブロックの初期化
-    const blockRowCount = 6;
-    const blockColumnCount = 8;
-    for (let c = 0; c < blockColumnCount; c++) {
-      for (let r = 0; r < blockRowCount; r++) {
-        gameRef.current.blocks.push({
-          x: c * (75 + 10),
-          y: r * (20 + 10),
-          width: 75,
-          height: 20,
-          isDestroyed: false,
-        });
-      }
-    }
 
     canvas.addEventListener("mousemove", mouseMoveHandler);
 
