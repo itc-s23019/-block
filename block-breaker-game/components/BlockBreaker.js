@@ -158,13 +158,21 @@ const BlockMain = () => {
       // ブロックの初期化
       const blockRowCount = 6;
       const blockColumnCount = 8;
+      const blockWidth = 75;
+      const blockHeight = 20;
+      const blockPadding = 15;
+      const blockOffsetTop = 30;
+      const blockOffsetLeft = 30;
+
       for (let c = 0; c < blockColumnCount; c++) {
         for (let r = 0; r < blockRowCount; r++) {
+          const blockX = (c * (blockWidth + blockPadding)) + blockOffsetLeft;
+          const blockY = (r * (blockHeight + blockPadding)) + blockOffsetTop;
           gameRef.current.blocks.push({
-            x: c * (75 + 10),
-            y: r * (20 + 10),
-            width: 75,
-            height: 20,
+            x: blockX,
+            y: blockY,
+            width: blockWidth,
+            height: blockHeight,
             isDestroyed: false,
           });
         }
