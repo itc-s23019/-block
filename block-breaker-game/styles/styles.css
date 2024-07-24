@@ -1,0 +1,16 @@
+/* styles/styles.css */
+.container {
+  text-align: center;
+}
+
+.title {
+  font-size: 2rem;
+  margin: 20px 0;
+}
+
+.canvas {
+  display: block;
+  margin: 0 auto;
+  border: 1px solid #000;
+}
+
