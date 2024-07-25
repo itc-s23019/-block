@@ -10,19 +10,20 @@ const BlockMain = () => {
   const intervalRef = useRef(null);
   const canvasRef = useRef(null);
   const gameRef = useRef({
-    ball: {
+    balls: [{
       x: 0,
       y: 0,
       radius: 10,
       dx: 2,
       dy: -2,
-    },
+    }],
     paddle: {
       height: 10,
       width: 75,
       x: 0,
     },
     blocks: [],
+    items: [],
   });
 
   const startTimeRef = useRef(null);
@@ -57,6 +58,16 @@ const BlockMain = () => {
     });
   };
 
+  const drawItems = (ctx, items) => {
+    items.forEach((item) => {
+      ctx.beginPath();
+      ctx.arc(item.x, item.y, item.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "#FF4500";
+      ctx.fill();
+      ctx.closePath();
+    });
+  };
+
   const drawScore = (ctx, score) => {
     ctx.font = "16px Arial";
     ctx.fillStyle = "#0095DD";
@@ -66,49 +77,75 @@ const BlockMain = () => {
   const draw = () => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    const { ball, paddle, blocks } = gameRef.current;
+    const { balls, paddle, blocks, items } = gameRef.current;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawBall(ctx, ball);
+    balls.forEach(ball => drawBall(ctx, ball));
     drawPaddle(ctx, paddle, canvas);
     drawBlocks(ctx, blocks);
+    drawItems(ctx, items);
     drawScore(ctx, score);
 
-    if (ball.x + ball.dx > canvas.width - ball.radius || ball.x + ball.dx < ball.radius) {
-      ball.dx = -ball.dx;
-    }
-
-    if (ball.y + ball.dy < ball.radius) {
-      ball.dy = -ball.dy;
-    } else if (ball.y + ball.dy > canvas.height - ball.radius) {
-      if (ball.x > paddle.x && ball.x < paddle.x + paddle.width) {
-        const relativePosition = (ball.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
-        const reflectionAngle = relativePosition * Math.PI / 4;
-        const speedMultiplier = 1;
-        const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy) * speedMultiplier;
-        ball.dx = Math.sin(reflectionAngle) * speed;
-        ball.dy = -Math.cos(reflectionAngle) * speed;
-      } else {
-        alert('GAME OVER');
-        document.location.reload();
-        return;
+    balls.forEach((ball) => {
+      if (ball.x + ball.dx > canvas.width - ball.radius || ball.x + ball.dx < ball.radius) {
+        ball.dx = -ball.dx;
       }
-    }
+
+      if (ball.y + ball.dy < ball.radius) {
+        ball.dy = -ball.dy;
+      } else if (ball.y + ball.dy > canvas.height - ball.radius) {
+        if (ball.x > paddle.x && ball.x < paddle.x + paddle.width) {
+          const relativePosition = (ball.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
+          const reflectionAngle = relativePosition * Math.PI / 4;
+          const speedMultiplier = 1;
+          const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy) * speedMultiplier;
+          ball.dx = Math.sin(reflectionAngle) * speed;
+          ball.dy = -Math.cos(reflectionAngle) * speed;
+        } else {
+          alert('GAME OVER');
+          resetGame();
+          return;
+        }
+      }
+
+      ball.x += ball.dx;
+      ball.y += ball.dy;
+    });
+
+    items.forEach((item, index) => {
+      item.y += item.dy;
+
+      if (item.y > canvas.height) {
+        items.splice(index, 1);
+      } else if (
+        item.y + item.radius > canvas.height - paddle.height &&
+        item.x > paddle.x &&
+        item.x < paddle.x + paddle.width
+      ) {
+        items.splice(index, 1);
+        addNewBall();
+      }
+    });
 
     let allBlocksDestroyed = true;
     blocks.forEach((block) => {
       if (!block.isDestroyed) {
         allBlocksDestroyed = false;
-        if (
-          ball.x > block.x &&
-          ball.x < block.x + block.width &&
-          ball.y > block.y &&
-          ball.y < block.y + block.height
-        ) {
-          block.isDestroyed = true;
-          ball.dy = -ball.dy;
-          setScore((prevScore) => prevScore + 10);
-        }
+        balls.forEach((ball) => {
+          if (
+            ball.x > block.x &&
+            ball.x < block.x + block.width &&
+            ball.y > block.y &&
+            ball.y < block.y + block.height
+          ) {
+            block.isDestroyed = true;
+            ball.dy = -ball.dy;
+            setScore((prevScore) => prevScore + 10);
+            if (Math.random() < 0.2) { // 20%の確率でアイテム生成
+              createItem(block.x + block.width / 2, block.y + block.height);
+            }
+          }
+        });
       }
     });
 
@@ -122,12 +159,9 @@ const BlockMain = () => {
       const finalScore = baseScore + bonusScore;
 
       alert(`ゲームクリア！おめでとうございます😁\nクリアにかかった時間：${seconds}秒\nスコア: ${finalScore}`);
-      document.location.reload();
+      resetGame();
       return;
     }
-
-    ball.x += ball.dx;
-    ball.y += ball.dy;
 
     requestAnimationFrame(draw);
   };
@@ -141,9 +175,54 @@ const BlockMain = () => {
     }
   };
 
+  const addNewBall = () => {
+    const canvas = canvasRef.current;
+    gameRef.current.balls.push({
+      x: canvas.width / 2,
+      y: canvas.height - 30,
+      radius: 10,
+      dx: 2,
+      dy: -2,
+    });
+  };
+
+  const createItem = (x, y) => {
+    gameRef.current.items.push({
+      x,
+      y,
+      radius: 10,
+      dy: 2,
+    });
+  };
+
+  const resetGame = () => {
+    gameRef.current = {
+      balls: [{
+        x: 0,
+        y: 0,
+        radius: 10,
+        dx: 2,
+        dy: -2,
+      }],
+      paddle: {
+        height: 10,
+        width: 75,
+        x: 0,
+      },
+      blocks: [],
+      items: [],
+    };
+    setScore(0);
+    setElapsedTime(0);
+    setIsRunning(false);
+    gameStartedRef.current = false;
+    blocksInitializedRef.current = false;
+    startGame();
+  };
+
   useEffect(() => {
     const canvas = canvasRef.current;
-    const { ball, paddle } = gameRef.current;
+    const { balls, paddle } = gameRef.current;
 
     if (!blocksInitializedRef.current) {
       const blockRowCount = 6;
@@ -170,10 +249,10 @@ const BlockMain = () => {
       blocksInitializedRef.current = true;
     }
 
-    ball.x = Math.random() * (canvas.width - 3 * ball.radius) + ball.radius;
-    ball.y = Math.random() * (canvas.height - 3 * ball.radius) + ball.radius;
-    ball.dx = 4;
-    ball.dy = -4;
+    balls[0].x = Math.random() * (canvas.width - 3 * balls[0].radius) + balls[0].radius;
+    balls[0].y = Math.random() * (canvas.height - 3 * balls[0].radius) + balls[0].radius;
+    balls[0].dx = 4;
+    balls[0].dy = -4;
     paddle.x = (canvas.width - paddle.width) / 2;
 
     canvas.addEventListener("mousemove", mouseMoveHandler);
