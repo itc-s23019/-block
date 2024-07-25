@@ -1,13 +1,17 @@
-.container {
+.mainContent {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   height: 100vh;
-  background-color: #f0f0f0;
+  text-align: center;
 }
 
-.gameCanvas {
-  background-color: #ffffff;
-  border: 1px solid #000000;
+.canvas {
+  border: 1px solid #000;
+}
+
+.startButton {
+  margin-top: 20px;
 }
 

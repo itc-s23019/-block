@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import styles from './BlockBreaker.module.css';
 
 const BlockMain = () => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
-  const [score, setScore] = useState(0); // スコアの状態を追加
+  const [score, setScore] = useState(0);
   const intervalRef = useRef(null);
   const canvasRef = useRef(null);
   const gameRef = useRef({
@@ -21,14 +22,13 @@ const BlockMain = () => {
       width: 75,
       x: 0,
     },
-    blocks: [], // ブロックを管理する配列
+    blocks: [],
   });
 
   const startTimeRef = useRef(null);
-  const gameStartedRef = useRef(false); // ゲームの開始フラグ
-  const blocksInitializedRef = useRef(false); // ブロックの初期化フラグ
+  const gameStartedRef = useRef(false);
+  const blocksInitializedRef = useRef(false);
 
-  // ボールを描画
   const drawBall = (ctx, ball) => {
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
@@ -37,7 +37,6 @@ const BlockMain = () => {
     ctx.closePath();
   };
 
-  // パドルを描画
   const drawPaddle = (ctx, paddle, canvas) => {
     ctx.beginPath();
     ctx.rect(paddle.x, canvas.height - paddle.height, paddle.width, paddle.height);
@@ -46,7 +45,6 @@ const BlockMain = () => {
     ctx.closePath();
   };
 
-  // ブロックを描画
   const drawBlocks = (ctx, blocks) => {
     blocks.forEach((block) => {
       if (!block.isDestroyed) {
@@ -59,14 +57,12 @@ const BlockMain = () => {
     });
   };
 
-  // スコアを描画
   const drawScore = (ctx, score) => {
     ctx.font = "16px Arial";
     ctx.fillStyle = "#0095DD";
     ctx.fillText(`Score: ${score}`, 8, 20);
   };
 
-  // ゲームのアニメーション（ボールの動き、衝突判定など）
   const draw = () => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -78,46 +74,31 @@ const BlockMain = () => {
     drawBlocks(ctx, blocks);
     drawScore(ctx, score);
 
-    // ボールが左右の壁に当たった場合の反射角度を変更
     if (ball.x + ball.dx > canvas.width - ball.radius || ball.x + ball.dx < ball.radius) {
       ball.dx = -ball.dx;
     }
 
-    // ボールが上の壁に当たった場合の反射角度を変更
     if (ball.y + ball.dy < ball.radius) {
       ball.dy = -ball.dy;
     } else if (ball.y + ball.dy > canvas.height - ball.radius) {
-      // パドルに当たった場合
-      if (
-        ball.x > paddle.x &&
-        ball.x < paddle.x + paddle.width
-      ) {
-        // パドルの中央に対するボールの相対的な位置を計算
+      if (ball.x > paddle.x && ball.x < paddle.x + paddle.width) {
         const relativePosition = (ball.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
-
-        // 反射角度を計算
         const reflectionAngle = relativePosition * Math.PI / 4;
-
-        // ボールの速度を増加
         const speedMultiplier = 1;
-
-        // ボールの速度を変更し、速度の向きを維持
         const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy) * speedMultiplier;
         ball.dx = Math.sin(reflectionAngle) * speed;
         ball.dy = -Math.cos(reflectionAngle) * speed;
       } else {
-        // ゲームオーバーの処理
         alert('GAME OVER');
         document.location.reload();
         return;
       }
     }
 
-    // ブロックとの当たり判定
-    let allBlocksDestroyed = true; // すべてのブロックが破壊されたかどうかのフラグ
+    let allBlocksDestroyed = true;
     blocks.forEach((block) => {
       if (!block.isDestroyed) {
-        allBlocksDestroyed = false; // まだ破壊されていないブロックがある
+        allBlocksDestroyed = false;
         if (
           ball.x > block.x &&
           ball.x < block.x + block.width &&
@@ -126,20 +107,18 @@ const BlockMain = () => {
         ) {
           block.isDestroyed = true;
           ball.dy = -ball.dy;
-          setScore((prevScore) => prevScore + 10); // スコアを10点加算
+          setScore((prevScore) => prevScore + 10);
         }
       }
     });
 
     if (allBlocksDestroyed) {
-      // すべてのブロックが破壊された場合、ゲームクリアの処理
       const endTime = new Date();
       const timeDiff = endTime - startTimeRef.current;
       const seconds = Math.floor(timeDiff / 1000);
-      const finalScore = score * seconds; // 最終スコアは経過時間とスコアの積
+      const finalScore = score * seconds;
 
-      alert(`ゲームクリア！　おめでとうございます😁\nクリアにかかった時間：${seconds}秒\nスコア: ${finalScore}`);
-
+      alert(`ゲームクリア！おめでとうございます😁\nクリアにかかった時間：${seconds}秒\nスコア: ${finalScore}`);
       document.location.reload();
       return;
     }
@@ -150,7 +129,6 @@ const BlockMain = () => {
     requestAnimationFrame(draw);
   };
 
-  // マウスの位置に応じてパドルの位置を更新
   const mouseMoveHandler = (e) => {
     const canvas = canvasRef.current;
     const { paddle } = gameRef.current;
@@ -160,13 +138,11 @@ const BlockMain = () => {
     }
   };
 
-  // useEffect 内の ball.x, ball.y の初期化部分
   useEffect(() => {
     const canvas = canvasRef.current;
     const { ball, paddle } = gameRef.current;
 
     if (!blocksInitializedRef.current) {
-      // ブロックの初期化
       const blockRowCount = 6;
       const blockColumnCount = 8;
       const blockWidth = 75;
@@ -191,13 +167,10 @@ const BlockMain = () => {
       blocksInitializedRef.current = true;
     }
 
-    // ボールの初期位置をランダムに設定
     ball.x = Math.random() * (canvas.width - 3 * ball.radius) + ball.radius;
     ball.y = Math.random() * (canvas.height - 3 * ball.radius) + ball.radius;
-
-    ball.dx = 4; // X方向の速度
-    ball.dy = -4; // Y方向の速度
-
+    ball.dx = 4;
+    ball.dy = -4;
     paddle.x = (canvas.width - paddle.width) / 2;
 
     canvas.addEventListener("mousemove", mouseMoveHandler);
@@ -216,7 +189,6 @@ const BlockMain = () => {
     }
   };
 
-  // 経過時間の測定
   useEffect(() => {
     if (isRunning) {
       intervalRef.current = setInterval(() => {
@@ -232,11 +204,11 @@ const BlockMain = () => {
   }, [isRunning]);
 
   return (
-    <div className='main-content'>
+    <div className={styles.mainContent}>
       <p>経過時間: {Math.floor(elapsedTime / 60)}分{elapsedTime % 60}秒</p>
-      <p>スコア: {score}</p> {/* スコアを表示 */}
+      <p>スコア: {score}</p>
       <canvas ref={canvasRef} width={800} height={600} style={{ border: '1px solid #000' }} />
-      <div className='start-button'>
+      <div className={styles.startButton}>
         <button onClick={startGame}>ゲームスタート</button>
       </div>
     </div>
