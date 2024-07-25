@@ -116,7 +116,10 @@ const BlockMain = () => {
       const endTime = new Date();
       const timeDiff = endTime - startTimeRef.current;
       const seconds = Math.floor(timeDiff / 1000);
-      const finalScore = score * seconds;
+      const baseScore = score;
+      const bonusScore = Math.max(10000 - (seconds * 100), 0); // 経過時間が短いほど高いボーナス
+
+      const finalScore = baseScore + bonusScore;
 
       alert(`ゲームクリア！おめでとうございます😁\nクリアにかかった時間：${seconds}秒\nスコア: ${finalScore}`);
       document.location.reload();
