@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 const BlockMain = () => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+  const [score, setScore] = useState(0); // スコアの状態を追加
   const intervalRef = useRef(null);
   const canvasRef = useRef(null);
   const gameRef = useRef({
@@ -58,6 +59,13 @@ const BlockMain = () => {
     });
   };
 
+  // スコアを描画
+  const drawScore = (ctx, score) => {
+    ctx.font = "16px Arial";
+    ctx.fillStyle = "#0095DD";
+    ctx.fillText(`Score: ${score}`, 8, 20);
+  };
+
   // ゲームのアニメーション（ボールの動き、衝突判定など）
   const draw = () => {
     const canvas = canvasRef.current;
@@ -68,6 +76,7 @@ const BlockMain = () => {
     drawBall(ctx, ball);
     drawPaddle(ctx, paddle, canvas);
     drawBlocks(ctx, blocks);
+    drawScore(ctx, score);
 
     // ボールが左右の壁に当たった場合の反射角度を変更
     if (ball.x + ball.dx > canvas.width - ball.radius || ball.x + ball.dx < ball.radius) {
@@ -117,6 +126,7 @@ const BlockMain = () => {
         ) {
           block.isDestroyed = true;
           ball.dy = -ball.dy;
+          setScore((prevScore) => prevScore + 10); // スコアを10点加算
         }
       }
     });
@@ -126,8 +136,9 @@ const BlockMain = () => {
       const endTime = new Date();
       const timeDiff = endTime - startTimeRef.current;
       const seconds = Math.floor(timeDiff / 1000);
+      const finalScore = score * seconds; // 最終スコアは経過時間とスコアの積
 
-      alert(`ゲームクリア！　おめでとうございます😁\nクリアにかかった時間：${seconds}秒`);
+      alert(`ゲームクリア！　おめでとうございます😁\nクリアにかかった時間：${seconds}秒\nスコア: ${finalScore}`);
 
       document.location.reload();
       return;
@@ -222,7 +233,8 @@ const BlockMain = () => {
 
   return (
     <div className='main-content'>
-      <p>経過時間: {elapsedTime}秒</p>
+      <p>経過時間: {Math.floor(elapsedTime / 60)}分{elapsedTime % 60}秒</p>
+      <p>スコア: {score}</p> {/* スコアを表示 */}
       <canvas ref={canvasRef} width={800} height={600} style={{ border: '1px solid #000' }} />
       <div className='start-button'>
         <button onClick={startGame}>ゲームスタート</button>
