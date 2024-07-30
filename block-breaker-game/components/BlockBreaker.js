@@ -7,19 +7,20 @@ const BlockMain = () => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [score, setScore] = useState(0);
+  const [items, setItems] = useState([]); // アイテムの状態を追加
   const intervalRef = useRef(null);
   const canvasRef = useRef(null);
   const gameRef = useRef(null);
 
   const initializeGame = () => {
     gameRef.current = {
-      ball: {
+      balls: [{
         x: 0,
         y: 0,
         radius: 10,
         dx: 2,
         dy: -2,
-      },
+      }],
       paddle: {
         height: 10,
         width: 75,
@@ -27,12 +28,13 @@ const BlockMain = () => {
       },
       blocks: [],
     };
+    setItems([]); // アイテムのリセット
   };
 
   const resetGame = () => {
     initializeGame();
     const canvas = canvasRef.current;
-    const { ball, paddle } = gameRef.current;
+    const { balls, paddle } = gameRef.current;
 
     // Initialize blocks
     const blockRowCount = 6;
@@ -58,10 +60,10 @@ const BlockMain = () => {
     }
 
     // Initialize ball and paddle positions
-    ball.x = Math.random() * (canvas.width - 3 * ball.radius) + ball.radius;
-    ball.y = Math.random() * (canvas.height - 3 * ball.radius) + ball.radius;
-    ball.dx = 4;
-    ball.dy = -4;
+    balls[0].x = Math.random() * (canvas.width - 3 * balls[0].radius) + balls[0].radius;
+    balls[0].y = Math.random() * (canvas.height - 3 * balls[0].radius) + balls[0].radius;
+    balls[0].dx = 4;
+    balls[0].dy = -4;
     paddle.x = (canvas.width - paddle.width) / 2;
 
     // Reset other states
@@ -114,6 +116,16 @@ const BlockMain = () => {
     });
   };
 
+  const drawItems = (ctx, items) => {
+    items.forEach((item) => {
+      ctx.beginPath();
+      ctx.arc(item.x, item.y, item.radius, 0, Math.PI * 2);
+      ctx.fillStyle = item.color;
+      ctx.fill();
+      ctx.closePath();
+    });
+  };
+
   const drawScore = (ctx, score) => {
     ctx.font = "16px Arial";
     ctx.fillStyle = "#0095DD";
@@ -123,68 +135,112 @@ const BlockMain = () => {
   const draw = () => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    const { ball, paddle, blocks } = gameRef.current;
+    const { balls, paddle, blocks } = gameRef.current;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawBall(ctx, ball);
+    balls.forEach((ball) => drawBall(ctx, ball));
     drawPaddle(ctx, paddle, canvas);
     drawBlocks(ctx, blocks);
+    drawItems(ctx, items); // アイテムの描画を追加
     drawScore(ctx, score);
 
-    if (ball.x + ball.dx > canvas.width - ball.radius || ball.x + ball.dx < ball.radius) {
-      ball.dx = -ball.dx;
-    }
+    balls.forEach((ball, index) => {
+      if (ball.x + ball.dx > canvas.width - ball.radius || ball.x + ball.dx < ball.radius) {
+        ball.dx = -ball.dx;
+      }
 
-    if (ball.y + ball.dy < ball.radius) {
-      ball.dy = -ball.dy;
-    } else if (ball.y + ball.dy > canvas.height - ball.radius) {
-      if (ball.x > paddle.x && ball.x < paddle.x + paddle.width) {
-        const relativePosition = (ball.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
-        const reflectionAngle = relativePosition * Math.PI / 4;
-        const speedMultiplier = 1;
-        const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy) * speedMultiplier;
-        ball.dx = Math.sin(reflectionAngle) * speed;
-        ball.dy = -Math.cos(reflectionAngle) * speed;
-      } else {
-        alert('GAME OVER');
+      if (ball.y + ball.dy < ball.radius) {
+        ball.dy = -ball.dy;
+      } else if (ball.y + ball.dy > canvas.height - ball.radius) {
+        if (ball.x > paddle.x && ball.x < paddle.x + paddle.width) {
+          const relativePosition = (ball.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
+          const reflectionAngle = relativePosition * Math.PI / 4;
+          const speedMultiplier = 1;
+          const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy) * speedMultiplier;
+          ball.dx = Math.sin(reflectionAngle) * speed;
+          ball.dy = -Math.cos(reflectionAngle) * speed;
+        } else {
+          // ボールを削除
+          gameRef.current.balls.splice(index, 1);
+          if (gameRef.current.balls.length === 0) {
+            alert('GAME OVER');
+            resetGame();
+            return;
+          }
+        }
+      }
+
+      let allBlocksDestroyed = true;
+      blocks.forEach((block) => {
+        if (!block.isDestroyed) {
+          allBlocksDestroyed = false;
+          if (
+            ball.x > block.x &&
+            ball.x < block.x + block.width &&
+            ball.y > block.y &&
+            ball.y < block.y + block.height
+          ) {
+            block.isDestroyed = true;
+            ball.dy = -ball.dy;
+            setScore((prevScore) => prevScore + 10);
+
+            // アイテム生成のロジック
+            if (Math.random() < 0.3) { // 30%の確率でアイテム生成
+              const newItem = {
+                x: block.x + block.width / 2,
+                y: block.y,
+                radius: 5,
+                color: '#FF0000',
+                dy: 2,
+              };
+              setItems((prevItems) => [...prevItems, newItem]);
+            }
+          }
+        }
+      });
+
+      if (allBlocksDestroyed) {
+        const endTime = new Date();
+        const timeDiff = endTime - startTimeRef.current;
+        const seconds = Math.floor(timeDiff / 1000);
+        const baseScore = score;
+        const bonusScore = Math.max(10000 - (seconds * 100), 0); // 経過時間が短いほど高いボーナス
+
+        const finalScore = baseScore + bonusScore;
+
+        alert(`ゲームクリア！おめでとうございます😁\nクリアにかかった時間：${seconds}秒\nスコア: ${finalScore}`);
         resetGame();
         return;
       }
-    }
 
-    let allBlocksDestroyed = true;
-    blocks.forEach((block) => {
-      if (!block.isDestroyed) {
-        allBlocksDestroyed = false;
-        if (
-          ball.x > block.x &&
-          ball.x < block.x + block.width &&
-          ball.y > block.y &&
-          ball.y < block.y + block.height
-        ) {
-          block.isDestroyed = true;
-          ball.dy = -ball.dy;
-          setScore((prevScore) => prevScore + 10);
-        }
-      }
+      ball.x += ball.dx;
+      ball.y += ball.dy;
     });
 
-    if (allBlocksDestroyed) {
-      const endTime = new Date();
-      const timeDiff = endTime - startTimeRef.current;
-      const seconds = Math.floor(timeDiff / 1000);
-      const baseScore = score;
-      const bonusScore = Math.max(10000 - (seconds * 100), 0); // 経過時間が短いほど高いボーナス
-
-      const finalScore = baseScore + bonusScore;
-
-      alert(`ゲームクリア！おめでとうございます😁\nクリアにかかった時間：${seconds}秒\nスコア: ${finalScore}`);
-      resetGame();
-      return;
-    }
-
-    ball.x += ball.dx;
-    ball.y += ball.dy;
+    // アイテムの移動とパドルとの衝突判定
+    setItems((prevItems) =>
+      prevItems.map((item) => ({
+        ...item,
+        y: item.y + item.dy,
+      })).filter((item) => {
+        if (item.y > canvas.height) return false;
+        if (item.y + item.radius >= canvas.height - paddle.height &&
+          item.x >= paddle.x &&
+          item.x <= paddle.x + paddle.width) {
+          // アイテムをパドルがキャッチしたときの処理
+          const newBall = {
+            x: paddle.x + paddle.width / 2,
+            y: canvas.height - paddle.height - 10,
+            radius: 10,
+            dx: 2,
+            dy: -2,
+          };
+          gameRef.current.balls.push(newBall); // 新しいボールを追加
+          return false;
+        }
+        return true;
+      })
+    );
 
     requestAnimationFrame(draw);
   };
