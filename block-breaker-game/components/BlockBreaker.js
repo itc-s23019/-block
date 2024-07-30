@@ -9,21 +9,78 @@ const BlockMain = () => {
   const [score, setScore] = useState(0);
   const intervalRef = useRef(null);
   const canvasRef = useRef(null);
-  const gameRef = useRef({
-    ball: {
-      x: 0,
-      y: 0,
-      radius: 10,
-      dx: 2,
-      dy: -2,
-    },
-    paddle: {
-      height: 10,
-      width: 75,
-      x: 0,
-    },
-    blocks: [],
-  });
+  const gameRef = useRef(null);
+
+  const initializeGame = () => {
+    gameRef.current = {
+      ball: {
+        x: 0,
+        y: 0,
+        radius: 10,
+        dx: 2,
+        dy: -2,
+      },
+      paddle: {
+        height: 10,
+        width: 75,
+        x: 0,
+      },
+      blocks: [],
+    };
+  };
+
+  const resetGame = () => {
+    initializeGame();
+    const canvas = canvasRef.current;
+    const { ball, paddle } = gameRef.current;
+
+    // Initialize blocks
+    const blockRowCount = 6;
+    const blockColumnCount = 8;
+    const blockWidth = 75;
+    const blockHeight = 20;
+    const blockPadding = 15;
+    const blockOffsetTop = 30;
+    const blockOffsetLeft = 30;
+
+    for (let c = 0; c < blockColumnCount; c++) {
+      for (let r = 0; r < blockRowCount; r++) {
+        const blockX = (c * (blockWidth + blockPadding)) + blockOffsetLeft;
+        const blockY = (r * (blockHeight + blockPadding)) + blockOffsetTop;
+        gameRef.current.blocks.push({
+          x: blockX,
+          y: blockY,
+          width: blockWidth,
+          height: blockHeight,
+          isDestroyed: false,
+        });
+      }
+    }
+
+    // Initialize ball and paddle positions
+    ball.x = Math.random() * (canvas.width - 3 * ball.radius) + ball.radius;
+    ball.y = Math.random() * (canvas.height - 3 * ball.radius) + ball.radius;
+    ball.dx = 4;
+    ball.dy = -4;
+    paddle.x = (canvas.width - paddle.width) / 2;
+
+    // Reset other states
+    setScore(0);
+    setElapsedTime(0);
+    setIsRunning(false);
+    gameStartedRef.current = false;
+  };
+
+  useEffect(() => {
+    initializeGame();
+
+    const canvas = canvasRef.current;
+    canvas.addEventListener("mousemove", mouseMoveHandler);
+
+    return () => {
+      canvas.removeEventListener("mousemove", mouseMoveHandler);
+    };
+  }, []);
 
   const startTimeRef = useRef(null);
   const gameStartedRef = useRef(false);
@@ -90,7 +147,7 @@ const BlockMain = () => {
         ball.dy = -Math.cos(reflectionAngle) * speed;
       } else {
         alert('GAME OVER');
-        document.location.reload();
+        resetGame();
         return;
       }
     }
@@ -122,7 +179,7 @@ const BlockMain = () => {
       const finalScore = baseScore + bonusScore;
 
       alert(`ゲームクリア！おめでとうございます😁\nクリアにかかった時間：${seconds}秒\nスコア: ${finalScore}`);
-      document.location.reload();
+      resetGame();
       return;
     }
 
@@ -140,48 +197,6 @@ const BlockMain = () => {
       paddle.x = relativeX - paddle.width / 2;
     }
   };
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const { ball, paddle } = gameRef.current;
-
-    if (!blocksInitializedRef.current) {
-      const blockRowCount = 6;
-      const blockColumnCount = 8;
-      const blockWidth = 75;
-      const blockHeight = 20;
-      const blockPadding = 15;
-      const blockOffsetTop = 30;
-      const blockOffsetLeft = 30;
-
-      for (let c = 0; c < blockColumnCount; c++) {
-        for (let r = 0; r < blockRowCount; r++) {
-          const blockX = (c * (blockWidth + blockPadding)) + blockOffsetLeft;
-          const blockY = (r * (blockHeight + blockPadding)) + blockOffsetTop;
-          gameRef.current.blocks.push({
-            x: blockX,
-            y: blockY,
-            width: blockWidth,
-            height: blockHeight,
-            isDestroyed: false,
-          });
-        }
-      }
-      blocksInitializedRef.current = true;
-    }
-
-    ball.x = Math.random() * (canvas.width - 3 * ball.radius) + ball.radius;
-    ball.y = Math.random() * (canvas.height - 3 * ball.radius) + ball.radius;
-    ball.dx = 4;
-    ball.dy = -4;
-    paddle.x = (canvas.width - paddle.width) / 2;
-
-    canvas.addEventListener("mousemove", mouseMoveHandler);
-
-    return () => {
-      canvas.removeEventListener("mousemove", mouseMoveHandler);
-    };
-  }, []);
 
   const startGame = () => {
     if (!gameStartedRef.current) {
