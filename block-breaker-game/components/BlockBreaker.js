@@ -3,11 +3,25 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styles from './BlockBreaker.module.css';
 
+// 静的ファイルへのパス
+const bgImages = [
+  '/assets/bgStage1.png',
+  '/assets/bgStage2.png',
+  '/assets/bgStage3.png'
+];
+const sounds = {
+  gameOver: '/assets/gameOver.mp3',
+  ballHit: '/assets/ballHit.mp3',
+  itemPickup: '/assets/itemPickup.mp3'
+};
+
 const BlockMain = () => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [score, setScore] = useState(0);
-  const [items, setItems] = useState([]); // アイテムの状態を追加
+  const [items, setItems] = useState([]);
+  const [stage, setStage] = useState(0); // 現在のステージを管理
+
   const intervalRef = useRef(null);
   const canvasRef = useRef(null);
   const gameRef = useRef(null);
@@ -27,8 +41,9 @@ const BlockMain = () => {
         x: 0,
       },
       blocks: [],
+      speed: 4, // ボールの初期速度
     };
-    setItems([]); // アイテムのリセット
+    setItems([]);
   };
 
   const resetGame = () => {
@@ -45,6 +60,7 @@ const BlockMain = () => {
     const blockOffsetTop = 30;
     const blockOffsetLeft = 30;
 
+    gameRef.current.blocks = [];
     for (let c = 0; c < blockColumnCount; c++) {
       for (let r = 0; r < blockRowCount; r++) {
         const blockX = (c * (blockWidth + blockPadding)) + blockOffsetLeft;
@@ -59,18 +75,17 @@ const BlockMain = () => {
       }
     }
 
-    // Initialize ball and paddle positions
     balls[0].x = Math.random() * (canvas.width - 3 * balls[0].radius) + balls[0].radius;
     balls[0].y = Math.random() * (canvas.height - 3 * balls[0].radius) + balls[0].radius;
-    balls[0].dx = 4;
-    balls[0].dy = -4;
+    balls[0].dx = gameRef.current.speed;
+    balls[0].dy = -gameRef.current.speed;
     paddle.x = (canvas.width - paddle.width) / 2;
 
-    // Reset other states
     setScore(0);
     setElapsedTime(0);
     setIsRunning(false);
     gameStartedRef.current = false;
+    setStage(0); // ステージをリセット
   };
 
   useEffect(() => {
@@ -88,10 +103,18 @@ const BlockMain = () => {
   const gameStartedRef = useRef(false);
   const blocksInitializedRef = useRef(false);
 
+  const drawBackground = (ctx, canvas) => {
+    const background = new Image();
+    background.src = bgImages[stage];
+    background.onload = () => {
+      ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+    };
+  };
+
   const drawBall = (ctx, ball) => {
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-    ctx.fillStyle = "#0095DD";
+    ctx.fillStyle = ball.color || "#0095DD";
     ctx.fill();
     ctx.closePath();
   };
@@ -132,16 +155,22 @@ const BlockMain = () => {
     ctx.fillText(`Score: ${score}`, 8, 20);
   };
 
+  const playSound = (soundUrl) => {
+    const audio = new Audio(soundUrl);
+    audio.play();
+  };
+
   const draw = () => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     const { balls, paddle, blocks } = gameRef.current;
 
+    drawBackground(ctx, canvas);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     balls.forEach((ball) => drawBall(ctx, ball));
     drawPaddle(ctx, paddle, canvas);
     drawBlocks(ctx, blocks);
-    drawItems(ctx, items); // アイテムの描画を追加
+    drawItems(ctx, items);
     drawScore(ctx, score);
 
     balls.forEach((ball, index) => {
@@ -155,18 +184,18 @@ const BlockMain = () => {
         if (ball.x > paddle.x && ball.x < paddle.x + paddle.width) {
           const relativePosition = (ball.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
           const reflectionAngle = relativePosition * Math.PI / 4;
-          const speedMultiplier = 1;
-          const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy) * speedMultiplier;
+          const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
           ball.dx = Math.sin(reflectionAngle) * speed;
           ball.dy = -Math.cos(reflectionAngle) * speed;
+          ball.speedMultiplier = (ball.speedMultiplier || 1) + 0.1; // スピードを増加させる
+          ball.dx *= ball.speedMultiplier;
+          ball.dy *= ball.speedMultiplier;
+          playSound(sounds.ballHit);
         } else {
-          // ボールを削除
-          gameRef.current.balls.splice(index, 1);
-          if (gameRef.current.balls.length === 0) {
-            alert('GAME OVER');
-            resetGame();
-            return;
-          }
+          playSound(sounds.gameOver);
+          alert('GAME OVER');
+          resetGame();
+          return;
         }
       }
 
@@ -183,9 +212,9 @@ const BlockMain = () => {
             block.isDestroyed = true;
             ball.dy = -ball.dy;
             setScore((prevScore) => prevScore + 10);
+            playSound(sounds.itemPickup);
 
-            // アイテム生成のロジック
-            if (Math.random() < 0.3) { // 30%の確率でアイテム生成
+            if (Math.random() < 0.3) {
               const newItem = {
                 x: block.x + block.width / 2,
                 y: block.y,
@@ -204,12 +233,21 @@ const BlockMain = () => {
         const timeDiff = endTime - startTimeRef.current;
         const seconds = Math.floor(timeDiff / 1000);
         const baseScore = score;
-        const bonusScore = Math.max(10000 - (seconds * 100), 0); // 経過時間が短いほど高いボーナス
+        const bonusScore = Math.max(10000 - (seconds * 100), 0);
 
         const finalScore = baseScore + bonusScore;
 
         alert(`ゲームクリア！おめでとうございます😁\nクリアにかかった時間：${seconds}秒\nスコア: ${finalScore}`);
-        resetGame();
+        setStage((prevStage) => {
+          const nextStage = prevStage + 1;
+          if (nextStage < bgImages.length) {
+            resetGame();
+            return nextStage;
+          } else {
+            // すべてのステージクリア後の処理
+            return 0;
+          }
+        });
         return;
       }
 
@@ -217,7 +255,6 @@ const BlockMain = () => {
       ball.y += ball.dy;
     });
 
-    // アイテムの移動とパドルとの衝突判定
     setItems((prevItems) =>
       prevItems.map((item) => ({
         ...item,
@@ -227,15 +264,16 @@ const BlockMain = () => {
         if (item.y + item.radius >= canvas.height - paddle.height &&
           item.x >= paddle.x &&
           item.x <= paddle.x + paddle.width) {
-          // アイテムをパドルがキャッチしたときの処理
           const newBall = {
             x: paddle.x + paddle.width / 2,
             y: canvas.height - paddle.height - 10,
             radius: 10,
             dx: 2,
             dy: -2,
+            color: 'black', // 新しいボールの色
           };
-          gameRef.current.balls.push(newBall); // 新しいボールを追加
+          gameRef.current.balls.push(newBall);
+          playSound(sounds.itemPickup);
           return false;
         }
         return true;
