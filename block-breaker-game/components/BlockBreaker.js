@@ -9,6 +9,7 @@ const bgImages = [
   '/assets/bgStage2.png',
   '/assets/bgStage3.png'
 ];
+
 const sounds = {
   gameOver: '/assets/gameOver.mp3',
   ballHit: '/assets/ballHit.mp3',
@@ -41,7 +42,7 @@ const BlockMain = () => {
         x: 0,
       },
       blocks: [],
-      speed: 4, // ボールの初期速度
+      speed: 3, // ボールの初期速度
     };
     setItems([]);
   };
@@ -165,8 +166,8 @@ const BlockMain = () => {
     const ctx = canvas.getContext('2d');
     const { balls, paddle, blocks } = gameRef.current;
 
-    drawBackground(ctx, canvas);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawBackground(ctx, canvas);
     balls.forEach((ball) => drawBall(ctx, ball));
     drawPaddle(ctx, paddle, canvas);
     drawBlocks(ctx, blocks);
@@ -187,7 +188,7 @@ const BlockMain = () => {
           const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
           ball.dx = Math.sin(reflectionAngle) * speed;
           ball.dy = -Math.cos(reflectionAngle) * speed;
-          ball.speedMultiplier = (ball.speedMultiplier || 1) + 0.1; // スピードを増加させる
+          ball.speedMultiplier = (ball.speedMultiplier || 0.7) + 0.04; // スピードを増加させる
           ball.dx *= ball.speedMultiplier;
           ball.dy *= ball.speedMultiplier;
           playSound(sounds.ballHit);
@@ -270,7 +271,7 @@ const BlockMain = () => {
             radius: 10,
             dx: 2,
             dy: -2,
-            color: 'black', // 新しいボールの色
+            color: 'red', // 新しいボールの色
           };
           gameRef.current.balls.push(newBall);
           playSound(sounds.itemPickup);
