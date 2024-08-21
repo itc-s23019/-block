@@ -188,7 +188,7 @@ const BlockMain = () => {
           const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
           ball.dx = Math.sin(reflectionAngle) * speed;
           ball.dy = -Math.cos(reflectionAngle) * speed;
-          ball.speedMultiplier = (ball.speedMultiplier || 0.7) + 0.04; // スピードを増加させる
+          ball.speedMultiplier = (ball.speedMultiplier || 0.4) + 1; // スピードを増加させる
           ball.dx *= ball.speedMultiplier;
           ball.dy *= ball.speedMultiplier;
           playSound(sounds.ballHit);
